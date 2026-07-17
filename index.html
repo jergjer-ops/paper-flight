@@ -162,8 +162,12 @@
     const leaderboardList=document.getElementById('leaderboard-list'),leaderboardStatus=document.getElementById('leaderboard-status');
     const profileTitle=document.getElementById('profile-title'),profileCopy=document.getElementById('profile-copy'),profileBest=document.getElementById('profile-best'),profileFlights=document.getElementById('profile-flights'),historyList=document.getElementById('history-list'),savePlayer=document.getElementById('save-player'),storageNote=document.getElementById('storage-note');
     const MUSIC_KEY='paper-flight-music';
-    let musicEnabled=localStorage.getItem(MUSIC_KEY)!=='off',audioContext=null,musicGain=null,musicTimer=0,nextMusicTime=0,musicStep=0;
-    const melody=[64,67,69,67,72,69,67,null,64,67,69,72,74,72,69,null];
+    let musicEnabled=localStorage.getItem(MUSIC_KEY)!=='off',audioContext=null,musicGain=null,musicTimer=0,nextMusicTime=0,musicStep=0,musicVariation=0;
+    const melodies=[
+      [64,67,69,67,72,69,67,null,64,67,69,72,74,72,69,null],
+      [67,69,72,74,72,69,67,null,69,72,74,76,74,72,69,null],
+      [64,69,67,72,69,74,72,null,67,72,69,74,76,74,72,null]
+    ];
     const bass=[48,48,53,55];
     function renderMusicButton(){menuMusic.dataset.i18n=musicEnabled?'musicOn':'musicOff';menuMusic.textContent=t(musicEnabled?'musicOn':'musicOff');menuMusic.setAttribute('aria-pressed',String(musicEnabled))}
     function noteFrequency(midi){return 440*Math.pow(2,(midi-69)/12)}
@@ -176,14 +180,21 @@
     }
     function scheduleMusic(){
       if(!audioContext||audioContext.state!=='running')return;
-      const stepDuration=60/92/2;
+      const stepDuration=60/104/2;
       while(nextMusicTime<audioContext.currentTime+.4){
-        const index=musicStep%melody.length;
-        playMusicNote(melody[index],nextMusicTime,stepDuration*.86,.12,'triangle');
+        const melody=melodies[musicVariation],index=musicStep%melody.length;
+        playMusicNote(melody[index],nextMusicTime,stepDuration*.82,.12,'triangle');
         if(index%4===0)playMusicNote(bass[Math.floor(index/4)%bass.length],nextMusicTime,stepDuration*3.7,.055,'sine');
-        if(index%2===0)playMusicNote(76,nextMusicTime,stepDuration*.18,.018,'sine');
+        if(index%2===0)playMusicNote(index%4===0?76:79,nextMusicTime,stepDuration*.16,.025,'sine');
         nextMusicTime+=stepDuration;musicStep++
       }
+    }
+    function playMilestoneSound(){
+      musicVariation=(musicVariation+1)%melodies.length;
+      if(!musicEnabled||!audioContext||audioContext.state!=='running')return;
+      const now=audioContext.currentTime+.015,notes=[72,76,79,84];
+      notes.forEach((note,index)=>playMusicNote(note,now+index*.075,.32,.16-index*.018,index===3?'sine':'triangle'));
+      playMusicNote(48,now,.5,.08,'sine')
     }
     function pauseMusic(){clearInterval(musicTimer);musicTimer=0;if(audioContext?.state==='running')audioContext.suspend().catch(()=>{})}
     function startMusic(fromGesture=false){
@@ -223,7 +234,7 @@
     function openHangar(){if(!activePlayer)return;mainMenu.hidden=true;hangarMessage.textContent='';renderHangar();hangarMenu.hidden=false}
     function closeHangar(){hangarMenu.hidden=true;renderMainMenu();mainMenu.hidden=false}
     function choosePlane(type){const model=PLANES[type],name=planeName(type);if(!model||!activePlayer)return;normalizePlayer(activePlayer);if(activePlayer.ownedPlanes.includes(type)){activePlayer.selectedPlane=type;saveProfiles();renderHangar();hangarMessage.textContent=t('planeSelected',name);return}if(activePlayer.coins<model.price){hangarMessage.textContent=t('notEnough',model.price-activePlayer.coins);return}activePlayer.coins-=model.price;activePlayer.ownedPlanes.push(type);activePlayer.selectedPlane=type;players[activeKey]=activePlayer;saveProfiles();renderHangar();hangarMessage.textContent=t('bought',name)}
-    function awardMilestone(){normalizePlayer(activePlayer);activePlayer.coins+=5;runCoins+=5;players[activeKey]=activePlayer;saveProfiles();clearTimeout(coinToastTimer);coinToast.hidden=true;requestAnimationFrame(()=>{coinToast.hidden=false});coinToastTimer=setTimeout(()=>{coinToast.hidden=true},900)}
+    function awardMilestone(){normalizePlayer(activePlayer);activePlayer.coins+=5;runCoins+=5;players[activeKey]=activePlayer;saveProfiles();playMilestoneSound();clearTimeout(coinToastTimer);coinToast.hidden=true;requestAnimationFrame(()=>{coinToast.hidden=false});coinToastTimer=setTimeout(()=>{coinToast.hidden=true},900)}
     function pauseGame(){if(phase!=='paused')pausedPhase=phase;phase='paused';syncGameplay()}
     function openMainMenu(){if(!menuEl.hidden||!hangarMenu.hidden)return;pauseGame();renderMainMenu();mainMenu.hidden=false}
     function resumeGame(){if(pausedPhase!=='playing')return;mainMenu.hidden=true;phase=pausedPhase;stage.focus({preventScroll:true});syncGameplay()}
