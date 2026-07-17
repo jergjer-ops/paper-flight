@@ -45,7 +45,7 @@
       <div class="game-stage" id="stage" role="application" tabindex="0" aria-label="Бумажный полёт. Нажмите пробел, стрелку вверх или коснитесь поля, чтобы бумажный самолётик набрал высоту.">
         <canvas class="game-canvas" id="game"></canvas>
         <div class="score-card" aria-live="polite"><span>СЧЁТ</span><strong id="score">0</strong></div>
-        <div class="coin-toast" id="coin-toast" role="status" hidden>+25 монет</div>
+        <div class="coin-toast" id="coin-toast" role="status" hidden>+5 монет</div>
         <button class="menu-button" id="menu-button" type="button" aria-label="Открыть главное меню"><span>МЕНЮ</span><strong>☰</strong></button>
         <div class="game-overlay" id="ready">
           <div class="tap-mark">↑</div><h2>Готов к полёту?</h2><p>Один лёгкий запуск — и ты в небе.</p><button id="start" type="button">Начать</button>
@@ -97,7 +97,7 @@
               </button>
             </div>
             <p class="hangar-message" id="hangar-message" aria-live="polite"></p>
-            <p class="hangar-note">За каждые 5 пройденных столбиков начисляется 25 монет.</p>
+            <p class="hangar-note">За каждые 5 пройденных столбиков начисляется 5 монет.</p>
           </div>
         </div>
         <div class="profile-menu" id="profile-menu" role="dialog" aria-modal="true" aria-labelledby="profile-title" hidden>
@@ -159,7 +159,7 @@
     function openHangar(){if(!activePlayer)return;mainMenu.hidden=true;hangarMessage.textContent='';renderHangar();hangarMenu.hidden=false}
     function closeHangar(){hangarMenu.hidden=true;renderMainMenu();mainMenu.hidden=false}
     function choosePlane(type){const model=PLANES[type];if(!model||!activePlayer)return;normalizePlayer(activePlayer);if(activePlayer.ownedPlanes.includes(type)){activePlayer.selectedPlane=type;saveProfiles();renderHangar();hangarMessage.textContent=`${model.name} выбран.`;return}if(activePlayer.coins<model.price){hangarMessage.textContent=`Не хватает ${model.price-activePlayer.coins} монет.`;return}activePlayer.coins-=model.price;activePlayer.ownedPlanes.push(type);activePlayer.selectedPlane=type;players[activeKey]=activePlayer;saveProfiles();renderHangar();hangarMessage.textContent=`${model.name} куплен и выбран!`}
-    function awardMilestone(){normalizePlayer(activePlayer);activePlayer.coins+=25;runCoins+=25;players[activeKey]=activePlayer;saveProfiles();clearTimeout(coinToastTimer);coinToast.hidden=true;requestAnimationFrame(()=>{coinToast.hidden=false});coinToastTimer=setTimeout(()=>{coinToast.hidden=true},900)}
+    function awardMilestone(){normalizePlayer(activePlayer);activePlayer.coins+=5;runCoins+=5;players[activeKey]=activePlayer;saveProfiles();clearTimeout(coinToastTimer);coinToast.hidden=true;requestAnimationFrame(()=>{coinToast.hidden=false});coinToastTimer=setTimeout(()=>{coinToast.hidden=true},900)}
     function pauseGame(){if(phase!=='paused')pausedPhase=phase;phase='paused'}
     function openMainMenu(){if(!menuEl.hidden||!hangarMenu.hidden)return;pauseGame();renderMainMenu();mainMenu.hidden=false}
     function resumeGame(){if(pausedPhase!=='playing')return;mainMenu.hidden=true;phase=pausedPhase;stage.focus({preventScroll:true})}
