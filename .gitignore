@@ -1,0 +1,4 @@
+# Keep local Edge Function secrets out of version control.
+supabase/functions/.env
+supabase/functions/.env.*
+!supabase/functions/.env.example
