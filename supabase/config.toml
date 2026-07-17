@@ -1,0 +1,5 @@
+# Supabase CLI project configuration.
+project_id = "uqnendfdguugtcguceei"
+
+[functions.telegram-flight]
+verify_jwt = false
