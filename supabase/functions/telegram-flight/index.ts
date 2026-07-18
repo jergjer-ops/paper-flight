@@ -4,7 +4,7 @@ import { validateTelegramInitData } from "../_shared/telegram-init-data.ts";
 // This endpoint is the only trust boundary for Telegram identity and scores.
 
 type RequestBody = {
-  action?: "profile" | "start" | "submit";
+  action?: "profile" | "start" | "submit" | "create_challenge";
   initData?: string;
   score?: number;
   sessionId?: string;
@@ -95,6 +95,8 @@ Deno.serve(async (request) => {
   const admin = createClient(supabaseUrl, adminKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const startParam = new URLSearchParams(body.initData ?? "").get("start_param") ?? "";
+  const challengeCode = /^c_[0-9a-f]{24}$/.test(startParam) ? startParam : "";
 
   if (body.action === "profile") {
     const playerKey = `telegram:${telegram.user.id}`;
@@ -104,9 +106,18 @@ Deno.serve(async (request) => {
       .eq("player_key", playerKey)
       .maybeSingle();
     if (error) return jsonResponse({ error: "Unable to load profile" }, 400, origin);
+    let challenge = null;
+    if (challengeCode) {
+      const opened = await admin.rpc("open_game_challenge", {
+        p_telegram_user_id: telegram.user.id,
+        p_code: challengeCode,
+      });
+      if (!opened.error) challenge = opened.data;
+    }
     return jsonResponse({
       telegram: { id: telegram.user.id, name: telegram.displayName },
       profile: data ?? { player_name: telegram.displayName, best_score: 0, total_flights: 0 },
+      challenge,
     }, 200, origin);
   }
 
@@ -116,6 +127,12 @@ Deno.serve(async (request) => {
       p_name: telegram.displayName,
     });
     if (error) return jsonResponse({ error: "Unable to start flight" }, 400, origin);
+    if (challengeCode) {
+      await admin.rpc("mark_game_challenge_flight", {
+        p_telegram_user_id: telegram.user.id,
+        p_code: challengeCode,
+      });
+    }
     return jsonResponse({ ...data, telegram: { id: telegram.user.id, name: telegram.displayName } }, 200, origin);
   }
 
@@ -135,6 +152,28 @@ Deno.serve(async (request) => {
       p_score: body.score,
     });
     if (error) return jsonResponse({ error: "Unable to submit score" }, 400, origin);
+    let challenge = null;
+    if (challengeCode) {
+      const recorded = await admin.rpc("record_game_challenge_score", {
+        p_telegram_user_id: telegram.user.id,
+        p_code: challengeCode,
+        p_score: body.score,
+      });
+      if (!recorded.error) challenge = recorded.data;
+    }
+    return jsonResponse({ ...data, challenge }, 200, origin);
+  }
+
+  if (body.action === "create_challenge") {
+    if (!Number.isInteger(body.score) || (body.score as number) < 1 || (body.score as number) > 1000) {
+      return jsonResponse({ error: "Complete a scored flight first" }, 400, origin);
+    }
+    const { data, error } = await admin.rpc("create_game_challenge", {
+      p_telegram_user_id: telegram.user.id,
+      p_name: telegram.displayName,
+      p_score: body.score,
+    });
+    if (error) return jsonResponse({ error: "Unable to create challenge" }, 400, origin);
     return jsonResponse(data, 200, origin);
   }
 
