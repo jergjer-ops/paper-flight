@@ -1,10 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { validateTelegramInitData } from "../_shared/telegram-init-data.ts";
+import { telegramApiRateLimit } from "../_shared/telegram-bot-safety.ts";
 
 // This endpoint is the only trust boundary for Telegram identity and scores.
 
 type RequestBody = {
-  action?: "profile" | "start" | "submit" | "create_challenge";
+  action?: "profile" | "leaderboard" | "start" | "submit" | "create_challenge";
   initData?: string;
   score?: number;
   sessionId?: string;
@@ -62,6 +63,11 @@ Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return jsonResponse({ ok: true }, 200, origin);
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405, origin);
 
+  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!contentType.startsWith("application/json")) {
+    return jsonResponse({ error: "Unsupported media type" }, 415, origin);
+  }
+
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > 16_384) return jsonResponse({ error: "Request is too large" }, 413, origin);
 
@@ -95,6 +101,18 @@ Deno.serve(async (request) => {
   const admin = createClient(supabaseUrl, adminKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const action = body.action ?? "";
+  const requestLimit = telegramApiRateLimit(action);
+  if (requestLimit === null) return jsonResponse({ error: "Unknown action" }, 400, origin);
+  const rate = await admin.rpc("claim_telegram_api_request", {
+    p_telegram_user_id: telegram.user.id,
+    p_action: action,
+    p_limit: requestLimit,
+    p_window_seconds: 60,
+  });
+  if (rate.error) return jsonResponse({ error: "Unable to apply request limit" }, 503, origin);
+  if (rate.data !== true) return jsonResponse({ error: "Too many requests" }, 429, origin);
+
   const startParam = new URLSearchParams(body.initData ?? "").get("start_param") ?? "";
   const challengeCode = /^c_[0-9a-f]{24}$/.test(startParam) ? startParam : "";
 
@@ -119,6 +137,14 @@ Deno.serve(async (request) => {
       profile: data ?? { player_name: telegram.displayName, best_score: 0, total_flights: 0 },
       challenge,
     }, 200, origin);
+  }
+
+  if (body.action === "leaderboard") {
+    const { data, error } = await admin.rpc("register_telegram_game_visit", {
+      p_telegram_user_id: telegram.user.id,
+    });
+    if (error) return jsonResponse({ error: "Unable to load leaderboard" }, 400, origin);
+    return jsonResponse(data, 200, origin);
   }
 
   if (body.action === "start") {
