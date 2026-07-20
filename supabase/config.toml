@@ -3,3 +3,6 @@ project_id = "uqnendfdguugtcguceei"
 
 [functions.telegram-flight]
 verify_jwt = false
+
+[functions.telegram-bot]
+verify_jwt = false

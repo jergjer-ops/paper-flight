@@ -18,12 +18,12 @@
       <div class="eyebrow">Telegram Mini App · PAPER-FLIGHT</div>
       <h1>Политика конфиденциальности</h1>
       <p>Эта политика объясняет, какие данные обрабатывает игра «Бумажный полёт», зачем они нужны и как пользователь может запросить их удаление.</p>
-      <div class="meta"><span><strong>Дата вступления в силу:</strong> 18 июля 2026 года</span><span><strong>Оператор:</strong> jergjer-ops</span></div>
+      <div class="meta"><span><strong>Дата вступления в силу:</strong> 19 июля 2026 года</span><span><strong>Оператор:</strong> jergjer-ops</span></div>
     </header>
 
     <article class="paper">
       <h2>1. Сфера действия</h2>
-      <p>Политика применяется к Telegram-боту <a href="https://t.me/PAPERFLIGHTBot">@PAPERFLIGHTBot</a>, Telegram Mini App и веб-версии игры «Бумажный полёт» (далее — «Игра»). Игра является независимым сервисом и не управляется Telegram.</p>
+      <p>Политика применяется к <a data-telegram-bot href="./">Telegram-боту игры</a>, Telegram Mini App и веб-версии игры «Бумажный полёт» (далее — «Игра»). Игра является независимым сервисом и не управляется Telegram.</p>
 
       <h2>2. Какие данные мы обрабатываем</h2>
       <h3>При запуске через Telegram</h3>
@@ -65,13 +65,14 @@
       <p>В общей таблице лидеров публично отображаются имя игрока, лучший результат и отметка подтверждённого Telegram-профиля. Telegram ID публично не показывается.</p>
 
       <h2>6. Срок хранения</h2>
-      <p>Профиль, лучший результат, игровые сессии и идентификатор посетителя могут храниться, пока работает Игра или пока пользователь не запросит удаление. Локальные данные хранятся на устройстве до очистки данных сайта. Резервные и технические журналы могут удаляться позже в рамках обычного цикла обслуживания поставщиков.</p>
+      <p>Профиль, лучший результат, игровые сессии и идентификатор посетителя могут храниться, пока работает Игра или пока пользователь не запросит удаление. Локальные данные хранятся на устройстве до очистки данных сайта. Технические записи защиты от повторной доставки webhook хранятся до 7 дней, а краткосрочные записи ограничения частоты запросов — обычно не более суток. Резервные копии поставщиков могут очищаться позже в рамках их обычного цикла обслуживания.</p>
 
       <h2>7. Безопасность</h2>
       <p>Передача данных выполняется по HTTPS. Telegram-данные запуска проверяются на серверной стороне. Доступ к записи результатов ограничен, а игровые сессии используются однократно. Ни один способ защиты не гарантирует абсолютную безопасность, но мы применяем разумные технические меры для снижения риска.</p>
 
       <h2>8. Права пользователя и удаление</h2>
-      <p>Пользователь может запросить сведения о сохранённых данных, исправление отображаемого имени или удаление серверного профиля и результатов. Для обращения используйте <a href="https://github.com/jergjer-ops/paper-flight/issues/new">страницу проекта</a>. Не публикуйте Telegram ID и другие личные данные в открытом обращении: сначала попросите предоставить приватный способ подтверждения личности.</p>
+      <p>Для немедленного удаления серверного профиля, результатов, игровых сессий, участия в вызовах и записи счётчика откройте личный чат с действующим ботом Игры и отправьте <code>/delete_me</code>, затем <code>/delete_me confirm</code>. Команда принимается только от владельца соответствующего Telegram ID и не требует публикации идентификатора.</p>
+      <p>Для запроса сведений или исправления имени используйте <a href="https://github.com/jergjer-ops/paper-flight/issues/new">страницу проекта</a>. Не публикуйте Telegram ID и другие личные данные в открытом обращении: сначала попросите предоставить приватный способ подтверждения личности.</p>
       <p>Локальные данные можно удалить самостоятельно, очистив данные сайта в браузере или данные Mini App в настройках Telegram.</p>
 
       <h2>9. Дети</h2>
@@ -86,12 +87,20 @@
         <h2>Privacy Policy — English summary</h2>
         <p>Paper Flight processes a verified Telegram user ID, display name, language, game scores, flight sessions and a visitor identifier to authenticate players, save progress, provide the leaderboard, count unique players and prevent abuse. Public leaderboard entries show the player name and best score but never expose the Telegram ID.</p>
         <p>Data is processed using Telegram, Supabase and GitHub Pages. It is not sold or used for third-party advertising. Server data may be retained while the Game operates or until deletion is requested; local data remains until site data is cleared.</p>
-        <p>To request access, correction or deletion, contact the operator through the <a href="https://github.com/jergjer-ops/paper-flight/issues/new">project page</a>. Do not post private identifiers publicly; first request a private verification channel.</p>
+        <p>To delete server-side game data, open a private chat with the active Game bot and send <code>/delete_me</code>, followed by <code>/delete_me confirm</code>. For access or correction requests, contact the operator through the <a href="https://github.com/jergjer-ops/paper-flight/issues/new">project page</a>. Never post private identifiers publicly.</p>
       </section>
 
-      <div class="actions"><a class="button" href="./">Вернуться в игру</a><a class="button alt" href="https://t.me/PAPERFLIGHTBot?startapp">Открыть в Telegram</a></div>
+      <div class="actions"><a class="button" href="./">Вернуться в игру</a><a class="button alt" data-telegram-launch href="./">Открыть в Telegram</a></div>
     </article>
     <footer>© 2026 «Бумажный полёт» · jergjer-ops</footer>
   </main>
+  <script src="public-config.js?v=30"></script>
+  <script>
+    const botUsername=String(window.PAPER_FLIGHT_CONFIG?.telegramBotUsername||'').replace(/^@/,'');
+    if(botUsername){
+      document.querySelectorAll('[data-telegram-bot]').forEach(link=>{link.href=`https://t.me/${botUsername}`;link.textContent=`@${botUsername}`});
+      document.querySelectorAll('[data-telegram-launch]').forEach(link=>{link.href=`https://t.me/${botUsername}?startapp`});
+    }
+  </script>
 </body>
 </html>

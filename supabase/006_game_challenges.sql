@@ -93,7 +93,7 @@ begin
     insert into public.game_challenges (
       code, challenger_telegram_id, challenger_name, target_score
     ) values (
-      'c_' || encode(gen_random_bytes(12), 'hex'),
+      'c_' || encode(extensions.gen_random_bytes(12), 'hex'),
       p_telegram_user_id,
       v_name,
       p_score

@@ -2,3 +2,7 @@
 supabase/functions/.env
 supabase/functions/.env.*
 !supabase/functions/.env.example
+
+# Python cache files are generated locally and must not be published.
+__pycache__/
+*.py[cod]
