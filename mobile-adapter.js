@@ -66,7 +66,10 @@
   // The mobile launch screen and full-bleed styles are for touch devices
   // (APK WebView and mobile web). On desktop (GamePix iframe, mouse) the
   // game uses its own web UI and the canvas resizes to fit the frame.
-  const touchDevice = matchMedia('(pointer: coarse)').matches;
+  const touchDevice =
+    matchMedia('(pointer: coarse)').matches ||
+    navigator.maxTouchPoints > 0 ||
+    'ontouchstart' in window;
 
   if (touchDevice) {
     document.documentElement.classList.add('mobile-app');

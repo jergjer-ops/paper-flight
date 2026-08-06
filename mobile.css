@@ -217,7 +217,8 @@ html.mobile-app .mobile-hint {
 }
 
 html.mobile-app .game-wrap {
-  width: 100%;
+  width: min(100%, calc(100vh * 0.65625));
+  width: min(100%, calc(100dvh * 0.65625));
   height: min(100%, 100vh);
   height: min(100%, 100dvh);
   max-width: none;
@@ -225,16 +226,15 @@ html.mobile-app .game-wrap {
 }
 
 html.mobile-app .game-stage {
-  width: min(100%, calc((100vh - 20px) * 0.65625));
-  width: min(100%, calc((100dvh - 20px) * 0.65625));
-  height: auto;
-  aspect-ratio: 420 / 640;
+  width: 100%;
+  height: 100%;
   max-height: none;
+  border: 0;
 }
 
 @media (orientation: landscape) {
   html.mobile-app .game-wrap {
-    width: 100%;
+    width: min(100%, calc(100dvh * 0.65625));
     height: 100dvh;
   }
 }
