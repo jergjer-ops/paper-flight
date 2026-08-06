@@ -3,6 +3,9 @@ supabase/functions/.env
 supabase/functions/.env.*
 !supabase/functions/.env.example
 
+# Supabase CLI stores machine-specific project state here.
+supabase/.temp/
+
 # Python cache files are generated locally and must not be published.
 __pycache__/
 *.py[cod]
