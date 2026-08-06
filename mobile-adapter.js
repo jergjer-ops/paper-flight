@@ -31,7 +31,7 @@
   const language = () => {
     const saved = storage.getItem(LANGUAGE_KEY);
     if (saved === 'ru' || saved === 'en') return saved;
-    return 'en';
+    return /^ru/i.test(navigator.language || '') ? 'ru' : 'en';
   };
 
   // Compatibility layer for the latest web version. Mobile builds do not
@@ -55,13 +55,8 @@
     }
   };
 
-  try {
-    if (!storage.getItem(LANGUAGE_KEY)) {
-      storage.setItem(LANGUAGE_KEY, 'en');
-    }
-  } catch (_) {
-    // The game remains usable when storage is unavailable.
-  }
+  // The language is detected on first run (see language()); nothing is
+  // written to storage until the player actually chooses a language.
 
   // The mobile launch screen and full-bleed styles are for touch devices
   // (APK WebView and mobile web). On desktop (GamePix iframe, mouse) the
@@ -73,6 +68,11 @@
 
   if (touchDevice) {
     document.documentElement.classList.add('mobile-app');
+    // Right-click / text-selection suppression is mobile-only: on desktop
+    // (GamePix iframe) players must be able to open links and copy text.
+    for (const eventName of ['contextmenu', 'dragstart', 'selectstart']) {
+      document.addEventListener(eventName, (event) => event.preventDefault(), { passive: false });
+    }
   }
 
   const launchCopy = {
@@ -167,10 +167,6 @@
     } else {
       createLaunchScreen();
     }
-  }
-
-  for (const eventName of ['contextmenu', 'dragstart', 'selectstart']) {
-    document.addEventListener(eventName, (event) => event.preventDefault(), { passive: false });
   }
 
   document.addEventListener('visibilitychange', () => {
