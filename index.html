@@ -470,7 +470,7 @@
     const howtoMenu=document.getElementById('howto-menu'),howtoPlay=document.getElementById('howto-play');
     howtoPlay.addEventListener('click',()=>{howtoMenu.hidden=true;reset()});
     pauseButton?.addEventListener('click',togglePause);
-    try{if('serviceWorker' in navigator&&window.self===window.top&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}}catch(e){}
+    try{if('serviceWorker' in navigator&&window.self===window.top&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{})})}}catch(e){}
     await initPlatform();if(telegramMode)await syncTelegramProfile();renderDifficulty();renderLeaderboard();renderProfile();if(activePlayer){loadLeaderboard();openMainMenu()}else openProfile(true);requestAnimationFrame(loop);requestAnimationFrame(signalGameReady);
   })();
   </script>
