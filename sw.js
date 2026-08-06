@@ -1,7 +1,9 @@
 /* Paper Flight — offline app shell.
  * Registered only on the top-level GitHub Pages site (never inside the
  * GamePix iframe or other embeds). Cache-first with network fallback. */
-const CACHE = 'paper-flight-v1';
+/* Bump this name on every release so the new version never serves stale
+ * assets from a previous deployment (activate() deletes all other caches). */
+const CACHE = 'paper-flight-v2';
 const ASSETS = [
   './',
   './index.html',
