@@ -207,7 +207,7 @@
   // used for platform language detection (requirement 2.14) and the
   // GameReady API (requirement 1.19). Outside Yandex this stays a no-op.
   window.__yandexReady = new Promise((resolve) => {
-    const inYandexFrame = window.self !== window.top && /yandex/i.test(document.referrer || '');
+    const inYandexFrame = window.self !== window.top && (/(^|\.)yandex\./i.test(location.hostname) || /yandex/i.test(document.referrer || '') || (location.ancestorOrigins && Array.from(location.ancestorOrigins).some(o=>/yandex/i.test(o))));
     if (!inYandexFrame) { resolve(); return; }
     const sdkScript = document.createElement('script');
     sdkScript.src = 'https://yandex.ru/games/sdk/v2';
@@ -215,6 +215,7 @@
       try {
         const yandexSdk = await YandexGamesSdk.init();
         window.__yandex = { sdk: yandexSdk, lang: String(yandexSdk?.environment?.i18n?.lang || '') };
+        try { yandexSdk.features?.LoadingAPI?.ready(); } catch (_) {}
       } catch (_) { window.__yandex = { sdk: null, lang: '' }; }
       resolve();
     };
