@@ -145,7 +145,14 @@
     launch.querySelector('.mobile-launch__play').addEventListener('click', () => {
       launch.classList.add('mobile-launch--closing');
       document.documentElement.classList.remove('mobile-launch-visible');
-      window.setTimeout(() => launch.remove(), 280);
+      window.setTimeout(() => {
+        launch.remove();
+        // Mobile flow: after the "tap to lift" screen, go straight to the
+        // how-to/first flight instead of dropping the player into the menu.
+        const mainMenu = document.getElementById('main-menu');
+        const playButton = document.getElementById('menu-play');
+        if (mainMenu && !mainMenu.hidden && playButton) playButton.click();
+      }, 280);
     });
 
     // The instruction says "tap the screen" — so any tap on the launch screen
