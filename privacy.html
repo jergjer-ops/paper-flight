@@ -72,7 +72,7 @@
 
       <h2>8. Права пользователя и удаление</h2>
       <p>Для немедленного удаления серверного профиля, результатов, игровых сессий, участия в вызовах и записи счётчика откройте личный чат с действующим ботом Игры и отправьте <code>/delete_me</code>, затем <code>/delete_me confirm</code>. Команда принимается только от владельца соответствующего Telegram ID и не требует публикации идентификатора.</p>
-      <p>Для запроса сведений или исправления имени используйте <a href="https://github.com/jergjer-ops/paper-flight/issues/new">страницу проекта</a>. Не публикуйте Telegram ID и другие личные данные в открытом обращении: сначала попросите предоставить приватный способ подтверждения личности.</p>
+      <p>Для запроса сведений или исправления имени обратитесь в службу поддержки платформы, на которой вы играете. Не публикуйте Telegram ID и другие личные данные в открытом обращении: сначала попросите предоставить приватный способ подтверждения личности.</p>
       <p>Локальные данные можно удалить самостоятельно, очистив данные сайта в браузере или данные Mini App в настройках Telegram.</p>
 
       <h2>9. Дети</h2>
@@ -87,7 +87,7 @@
         <h2>Privacy Policy — English summary</h2>
         <p>Paper Flight processes a verified Telegram user ID, display name, language, game scores, flight sessions and a visitor identifier to authenticate players, save progress, provide the leaderboard, count unique players and prevent abuse. Public leaderboard entries show the player name and best score but never expose the Telegram ID.</p>
         <p>Data is processed using Telegram, Supabase and GitHub Pages. It is not sold or used for third-party advertising. Server data may be retained while the Game operates or until deletion is requested; local data remains until site data is cleared.</p>
-        <p>To delete server-side game data, open a private chat with the active Game bot and send <code>/delete_me</code>, followed by <code>/delete_me confirm</code>. For access or correction requests, contact the operator through the <a href="https://github.com/jergjer-ops/paper-flight/issues/new">project page</a>. Never post private identifiers publicly.</p>
+        <p>To delete server-side game data, open a private chat with the active Game bot and send <code>/delete_me</code>, followed by <code>/delete_me confirm</code>. For access or correction requests, contact platform support. Never post private identifiers publicly.</p>
       </section>
 
       <div class="actions"><a class="button" href="./">Вернуться в игру</a><a class="button alt" data-telegram-launch href="./">Открыть в Telegram</a></div>
@@ -97,9 +97,12 @@
   <script src="public-config.js?v=30"></script>
   <script>
     const botUsername=String(window.PAPER_FLIGHT_CONFIG?.telegramBotUsername||'').replace(/^@/,'');
-    if(botUsername){
+    const telegramContext=Boolean(window.Telegram?.WebApp);
+    if(botUsername&&telegramContext){
       document.querySelectorAll('[data-telegram-bot]').forEach(link=>{link.href=`https://t.me/${botUsername}`;link.textContent=`@${botUsername}`});
       document.querySelectorAll('[data-telegram-launch]').forEach(link=>{link.href=`https://t.me/${botUsername}?startapp`});
+    }else{
+      document.querySelectorAll('[data-telegram-bot],[data-telegram-launch]').forEach(link=>{link.hidden=true});
     }
   </script>
 </body>
