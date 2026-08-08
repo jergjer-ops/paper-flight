@@ -48,6 +48,7 @@
   </style>
   <link rel="stylesheet" href="mobile.css">
   <script src="public-config.js"></script>
+  <script src="/sdk.js"></script>
   <script src="mobile-adapter.js"></script>
 </head>
 <body>
@@ -203,15 +204,14 @@
   </main>
   <script src="https://gamepix.blob.core.windows.net/gpxlib/dev/gamepix.js"></script>
   <script>
-  // Yandex Games: the SDK is loaded only inside the Yandex iframe and is
-  // used for platform language detection (requirement 2.14) and the
-  // GameReady API (requirement 1.19). Outside Yandex this stays a no-op.
+  // Yandex Games: the SDK is loaded statically via <script src="/sdk.js">
+  // in <head> (requirement 1.1 — the platform injects its SDK at this path
+  // and checks for the static tag). Init below is used for platform language
+  // detection (requirement 2.14) and the GameReady API (requirement 1.19).
+  // Outside Yandex /sdk.js is a harmless 404 and this stays a no-op.
   window.__yandexReady = new Promise((resolve) => {
     const inYandexFrame = window.self !== window.top && (/(^|\.)yandex\./i.test(location.hostname) || /yandex/i.test(document.referrer || '') || (location.ancestorOrigins && Array.from(location.ancestorOrigins).some(o=>/yandex/i.test(o))));
-    if (!inYandexFrame) { resolve(); return; }
-    const sdkScript = document.createElement('script');
-    sdkScript.src = '/sdk.js';
-    sdkScript.onload = async () => {
+    const tryInit = async () => {
       try {
         if (typeof YandexGamesSdk === 'undefined') { resolve(); return; }
         const yandexSdk = await YandexGamesSdk.init();
@@ -220,8 +220,17 @@
       } catch (_) { window.__yandex = { sdk: null, lang: '' }; }
       resolve();
     };
-    sdkScript.onerror = () => { resolve(); };
-    document.head.appendChild(sdkScript);
+    if (!inYandexFrame) { resolve(); return; }
+    if (typeof YandexGamesSdk !== 'undefined') { tryInit(); }
+    else {
+      // The static tag may still be loading; poll briefly (max 10s).
+      let tries = 0;
+      const timer = setInterval(() => {
+        tries++;
+        if (typeof YandexGamesSdk !== 'undefined') { clearInterval(timer); tryInit(); }
+        else if (tries > 100) { clearInterval(timer); resolve(); }
+      }, 100);
+    }
   });
   </script>
   <script>
