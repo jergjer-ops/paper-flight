@@ -170,15 +170,19 @@ Deno.serve(async (request) => {
         actual_username: identity.username ?? null,
       }, 409);
     }
-    await telegram("setMyCommands", {
-      commands: [
-        { command: "start", description: "Open PAPER FLIGHT" },
-        { command: "help", description: "Help and commands" },
-        { command: "privacy", description: "Privacy policy" },
-        { command: "delete_me", description: "Delete my game data" },
-        { command: "support", description: "Support" },
-      ],
-    });
+    try {
+      await telegram("setMyCommands", {
+        commands: [
+          { command: "start", description: "Open PAPER FLIGHT" },
+          { command: "help", description: "Help and commands" },
+          { command: "privacy", description: "Privacy policy" },
+          { command: "delete_me", description: "Delete my game data" },
+          { command: "support", description: "Support" },
+        ],
+      });
+    } catch (error) {
+      console.warn("setMyCommands skipped:", error instanceof Error ? error.message : String(error));
+    }
     const webhookResult = await telegram<boolean>("setWebhook", {
       url: FUNCTION_URL,
       secret_token: webhookSecret,
