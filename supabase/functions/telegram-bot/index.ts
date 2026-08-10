@@ -30,7 +30,7 @@ type TelegramBotIdentity = {
 const GAME_URL = "https://jergjer-ops.github.io/paper-flight/?v=30";
 const FUNCTION_URL = "https://uqnendfdguugtcguceei.supabase.co/functions/v1/telegram-bot";
 const ASSET_ROOT = "https://uqnendfdguugtcguceei.supabase.co/storage/v1/object/public/paper-flight-public/welcome";
-const VIDEO_URL = `${ASSET_ROOT}/paper-flight-how-to-play.mp4`;
+const VIDEO_URL = `${ASSET_ROOT}/paper-flight-how-to-play-v2.mp4`;
 const POSTER_URL = `${ASSET_ROOT}/paper-flight-how-to-play-poster.png`;
 const PRIVACY_URL = "https://jergjer-ops.github.io/paper-flight/privacy.html";
 const SUPPORT_URL = "https://github.com/jergjer-ops/paper-flight/issues/new";
