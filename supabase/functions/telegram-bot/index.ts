@@ -162,6 +162,16 @@ Deno.serve(async (request) => {
   }
 
   if (constantTimeEqual(request.headers.get("x-paper-flight-setup") ?? "", setupSecret)) {
+    const requestBody = await request.json().catch(() => ({})) as { diag?: string; chat_id?: number; method?: string; payload?: Record<string, unknown> };
+    if (requestBody.diag === "botapi" && requestBody.method) {
+      if (!/^[A-Za-z]{3,40}$/.test(requestBody.method)) return response({ error: "Invalid method" }, 400);
+      try {
+        const result = await telegram(requestBody.method, requestBody.payload ?? {});
+        return response({ ok: true, method: requestBody.method, result });
+      } catch (error) {
+        return response({ ok: false, method: requestBody.method, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
     const identity = await telegram<TelegramBotIdentity>("getMe", {});
     const actualUsername = normalizeBotUsername(identity.username ?? "");
     if (!identity.is_bot || actualUsername !== expectedUsername) {
@@ -195,7 +205,6 @@ Deno.serve(async (request) => {
     } catch (error) {
       webhookInfo = { info_error: error instanceof Error ? error.message : String(error) };
     }
-    const requestBody = await request.json().catch(() => ({})) as { diag?: string; chat_id?: number };
     if (requestBody.diag === "pipeline") {
       const diagAdmin = createClient(supabaseUrl, adminKey, { auth: { persistSession: false, autoRefreshToken: false } });
       const out: Record<string, unknown> = {
