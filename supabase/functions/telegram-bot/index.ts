@@ -189,10 +189,19 @@ Deno.serve(async (request) => {
       allowed_updates: ["message"],
       drop_pending_updates: true,
     });
+    let webhookInfo: Record<string, unknown> | null = null;
+    try {
+      webhookInfo = await telegram<Record<string, unknown>>("getWebhookInfo", {});
+    } catch (error) {
+      webhookInfo = { info_error: error instanceof Error ? error.message : String(error) };
+    }
     return response({
       ok: true,
       webhook: webhookResult,
-      bot: { id: identity.id, username: identity.username },
+      bot: { id: identity.id, username: identity.username, first_name: identity.first_name },
+      webhook_info: webhookInfo,
+      secret_prefix: webhookSecret.slice(0, 6),
+      secret_len: webhookSecret.length,
     });
   }
 
