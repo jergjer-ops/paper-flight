@@ -45,6 +45,7 @@
     .challenge-banner{margin:-3px 0 12px;padding:9px 12px;color:var(--ink);background:rgba(231,111,81,.16);border:2px dashed var(--coral);font:700 12px/1.35 "Comic Sans MS","Segoe Print",cursive;transform:rotate(-.5deg)}.challenge-banner[hidden]{display:none}.main-challenge{color:var(--light);background:var(--coral);box-shadow:4px 5px 0 rgba(36,53,75,.25)}.main-challenge:disabled,.challenge-action:disabled{opacity:.58;cursor:wait}
     .leaderboard-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:0 0 8px}.leaderboard-tabs button{border:1px dashed rgba(36,53,75,.35);padding:5px 6px;color:#756a5b;background:transparent;cursor:pointer;font-size:7px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.leaderboard-tabs button[aria-pressed="true"]{border-color:var(--coral);color:var(--light);background:var(--coral)}.leaderboard-tabs button:focus-visible{outline:2px solid var(--mustard);outline-offset:1px}
     .difficulty-card{position:absolute;top:115px;left:24px;z-index:7;padding:5px 9px;color:var(--ink);background:rgba(251,243,223,.92);box-shadow:2px 3px 0 rgba(36,53,75,.18);font-size:7px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;transform:rotate(1deg);pointer-events:none}
+    .mobile-hint{display:none!important}
   </style>
   <link rel="stylesheet" href="mobile.css">
   <script src="public-config.js"></script>
@@ -479,7 +480,7 @@
     const PRIVACY_RU='<div class="privacy-meta"><strong>Оператор:</strong> jergjer-ops · <strong>Дата вступления в силу:</strong> 6 августа 2026 г.<br><strong>Версия приложения:</strong> __APP_VERSION__<br><strong>Контакт:</strong> jergjer-ops (страница проекта — jergjer-ops/paper-flight) · почта: jergjer@gmail.com</div><h3>1. Данные на вашем устройстве</h3><p>Всё хранится только на вашем телефоне и никуда не передаётся:</p><ul><li>профиль игрока: имя, монеты, купленные самолётики, жизни, лучший результат, последние полёты;</li><li>настройки: язык (RU/EN), музыка вкл/выкл;</li><li>анонимный ID посетителя — случайный набор символов для счётчика игроков.</li></ul><p>Удаляется очисткой данных приложения.</p><h3>2. Что отправляется на сервер (Supabase)</h3><p>Только для таблицы лидеров и счётчика игроков:</p><ul><li>визит — анонимный ID посетителя (для счётчика уникальных игроков);</li><li>имя игрока и результат — при сохранении счёта в общую таблицу лидеров;</li><li>игровая сессия — служебный ID для защиты от подделки результатов.</li></ul><h3>3. Публичная таблица лидеров</h3><p>В ней видны только: имя игрока и лучший результат. Больше ничего.</p><h3>4. Чего игра НЕ собирает</h3><ul><li>никакой рекламы, рекламных SDK и трекеров — проверено по коду;</li><li>нет контактов, геолокации, фото, микрофона, файлов устройства;</li><li>нет истории браузера и данных с других сайтов;</li><li>данные не продаются третьим лицам.</li></ul><h3>5. Безопасность и ваши права</h3><ul><li>передача данных — по HTTPS;</li><li>серверные данные удаляются по запросу через контакты выше;</li><li>локальные данные удаляются очисткой данных приложения в настройках телефона.</li></ul>';
     const PRIVACY_EN='<div class="privacy-meta"><strong>Operator:</strong> jergjer-ops · <strong>Effective date:</strong> August 6, 2026<br><strong>App version:</strong> __APP_VERSION__<br><strong>Contact:</strong> jergjer-ops (project page — jergjer-ops/paper-flight) · email: jergjer@gmail.com</div><h3>1. Data on your device</h3><p>Everything is stored only on your phone and is not shared anywhere:</p><ul><li>player profile: name, coins, purchased planes, lives, best score, recent flights;</li><li>settings: language (RU/EN), music on/off;</li><li>anonymous visitor ID — a random string used for the player counter.</li></ul><p>It is deleted when you clear the app data.</p><h3>2. What is sent to the server (Supabase)</h3><p>Only for the leaderboard and the player counter:</p><ul><li>visit — anonymous visitor ID (for counting unique players);</li><li>player name and score — when saving a score to the global leaderboard;</li><li>game session — a service ID that prevents score forgery.</li></ul><h3>3. Public leaderboard</h3><p>Only these are visible: player name and best score. Nothing else.</p><h3>4. What the game does NOT collect</h3><ul><li>no ads, ad SDKs or trackers — verified in the code;</li><li>no contacts, location, photos, microphone, or device files;</li><li>no browser history or data from other sites;</li><li>data is never sold to third parties.</li></ul><h3>5. Security and your rights</h3><ul><li>data is transferred over HTTPS;</li><li>server-side data can be deleted on request via the contact above;</li><li>local data is deleted by clearing the app data in the phone settings.</li></ul>';
     function appPlatform(){if(telegramMode)return'telegram';if(document.documentElement.classList.contains('vk-app'))return'vk';if(document.documentElement.classList.contains('mobile-app'))return'mobile';return'web'}
-    function renderPrivacy(){const platform=appPlatform(),label=currentLang==='ru'?({telegram:'Telegram Mini App',vk:'VK Mini App',mobile:'мобильное приложение (WebView)',web:'браузерная версия'})[platform]:({telegram:'Telegram Mini App',vk:'VK Mini App',mobile:'mobile app (WebView)',web:'browser version'})[platform];privacyBody.innerHTML=(currentLang==='ru'?PRIVACY_RU:PRIVACY_EN).replace('__APP_VERSION__',`1.2 · ${label}`)}
+    function renderPrivacy(){const platform=appPlatform(),label=currentLang==='ru'?({telegram:'Telegram Mini App',vk:'VK Mini App',mobile:'мобильное приложение (WebView)',web:'браузерная версия'})[platform]:({telegram:'Telegram Mini App',vk:'VK Mini App',mobile:'mobile app (WebView)',web:'browser version'})[platform];privacyBody.innerHTML=(currentLang==='ru'?PRIVACY_RU:PRIVACY_EN).replace('__APP_VERSION__',`1.2.1 · ${label}`)}
     function openPrivacy(){mainMenu.hidden=true;privacyMenu.hidden=false;renderPrivacy();privacyClose.focus({preventScroll:true})}
     function closePrivacy(){privacyMenu.hidden=true;renderMainMenu(false);mainMenu.hidden=false;privacyLink.focus({preventScroll:true})}
     privacyLink.addEventListener('click',e=>{e.preventDefault();openPrivacy()});
@@ -488,7 +489,37 @@
     howtoPlay.addEventListener('click',()=>{howtoMenu.hidden=true;reset()});
     pauseButton?.addEventListener('click',togglePause);
     try{if('serviceWorker' in navigator&&window.self===window.top&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{})})}}catch(e){}
-    await initPlatform();if(telegramMode)await syncTelegramProfile();renderDifficulty();renderLeaderboard();renderProfile();if(activePlayer){loadLeaderboard();openMainMenu()}else openProfile(true);function fitStage(){const wrap=document.querySelector('.game-wrap'),st=document.getElementById('stage');if(!wrap||!st)return;st.style.transform='scale('+Math.min(wrap.clientWidth/440,wrap.clientHeight/660)+')'}window.addEventListener('resize',fitStage);fitStage();requestAnimationFrame(loop);requestAnimationFrame(signalGameReady);
+    await initPlatform();if(telegramMode)await syncTelegramProfile();renderDifficulty();renderLeaderboard();renderProfile();if(activePlayer){loadLeaderboard();openMainMenu()}else openProfile(true);
+    // Fit the game to the hosting frame (GamePix iframe, browser window).
+    // The iframe can be resized by the host without a window.resize event,
+    // so observe the wrap element itself and re-fit on any size change.
+    function fitStage(){
+      const wrap=document.querySelector('.game-wrap'),st=document.getElementById('stage');
+      if(!wrap||!st)return;
+      const w=wrap.clientWidth,h=wrap.clientHeight;
+      if(!w||!h)return;
+      if(document.documentElement.classList.contains('mobile-app')){
+        // Touch layout: keep the 420x640 game ratio, no distortion, no
+        // transform. The stage box is sized in JS to letterbox within the
+        // wrap while preserving the aspect ratio.
+        st.style.transform='none';
+        const ratio=WIDTH/HEIGHT;
+        let sw=w,sh=w/ratio;
+        if(sh>h){sh=h;sw=h*ratio}
+        st.style.width=Math.round(sw)+'px';
+        st.style.height=Math.round(sh)+'px';
+        return;
+      }
+      st.style.width='440px';st.style.height='660px';
+      st.style.transform='scale('+Math.min(w/440,h/660)+')';
+    }
+    let fitObserver=null;
+    try{fitObserver=new ResizeObserver(fitStage);const wrap=document.querySelector('.game-wrap');if(wrap)fitObserver.observe(wrap);fitObserver.observe(document.body)}catch(e){}
+    window.addEventListener('resize',fitStage);
+    fitStage();
+    // Late iframe sizing by hosts: re-fit a few times after load.
+    [300,800,1500,3000].forEach(ms=>setTimeout(fitStage,ms));
+    requestAnimationFrame(loop);requestAnimationFrame(signalGameReady);
   })();
   </script>
 </body>
