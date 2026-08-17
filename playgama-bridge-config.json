@@ -1,0 +1,25 @@
+{
+  "advertisement": {
+    "minimumDelayBetweenInterstitial": 60,
+    "interstitial": {
+      "placementFallback": "game_over",
+      "preloadOnStart": "game_over",
+      "placements": [
+        { "id": "game_over" }
+      ]
+    },
+    "banner": {
+      "placementFallback": "main_menu",
+      "placements": [
+        { "id": "main_menu" }
+      ]
+    },
+    "rewarded": {
+      "preloadOnStart": "extra_life",
+      "placementFallback": "extra_life",
+      "placements": [
+        { "id": "extra_life" }
+      ]
+    }
+  }
+}
