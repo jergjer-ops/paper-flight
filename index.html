@@ -536,7 +536,7 @@
     howtoPlay.addEventListener('click',()=>{howtoMenu.hidden=true;reset()});
     pauseButton?.addEventListener('click',togglePause);
     try{if('serviceWorker' in navigator&&window.self===window.top&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{})})}}catch(e){}
-    await initPlatform();if(telegramMode)await syncTelegramProfile();if(typeof ytgame!=='undefined'){privacyLink.style.display='none';menuChallenge.hidden=true;gameoverChallenge.hidden=true}renderDifficulty();renderLeaderboard();renderProfile();if(activePlayer){loadLeaderboard();if(telegramMode||Number(activePlayer.flights)>0||activePlayer.nameLocked)openMainMenu();else phase='ready'}else phase='ready';
+    await initPlatform();if(telegramMode)await syncTelegramProfile();if(typeof ytgame!=='undefined'){privacyLink.style.display='none';menuChallenge.hidden=true;gameoverChallenge.hidden=true}renderDifficulty();renderLeaderboard();renderProfile();if(activePlayer){loadLeaderboard();if(telegramMode||Number(activePlayer.flights)>0||activePlayer.nameLocked)openMainMenu();else openProfile(true)}else openProfile(true);
     // Fit the game to the hosting frame (GamePix iframe, browser window).
     // The iframe can be resized by the host without a window.resize event,
     // so observe the wrap element itself and re-fit on any size change.
