@@ -30,7 +30,7 @@ type TelegramBotIdentity = {
 const GAME_URL = "https://jergjer-ops.github.io/paper-flight/?v=30";
 const FUNCTION_URL = "https://uqnendfdguugtcguceei.supabase.co/functions/v1/telegram-bot";
 const ASSET_ROOT = "https://uqnendfdguugtcguceei.supabase.co/storage/v1/object/public/paper-flight-public/welcome";
-const VIDEO_URL = `${ASSET_ROOT}/paper-flight-how-to-play.mp4`;
+const VIDEO_URL = `${ASSET_ROOT}/paper-flight-how-to-play-v2.mp4`;
 const POSTER_URL = `${ASSET_ROOT}/paper-flight-how-to-play-poster.png`;
 const PRIVACY_URL = "https://jergjer-ops.github.io/paper-flight/privacy.html";
 const SUPPORT_URL = "https://github.com/jergjer-ops/paper-flight/issues/new";
@@ -162,6 +162,16 @@ Deno.serve(async (request) => {
   }
 
   if (constantTimeEqual(request.headers.get("x-paper-flight-setup") ?? "", setupSecret)) {
+    const requestBody = await request.json().catch(() => ({})) as { diag?: string; chat_id?: number; method?: string; payload?: Record<string, unknown> };
+    if (requestBody.diag === "botapi" && requestBody.method) {
+      if (!/^[A-Za-z]{3,40}$/.test(requestBody.method)) return response({ error: "Invalid method" }, 400);
+      try {
+        const result = await telegram(requestBody.method, requestBody.payload ?? {});
+        return response({ ok: true, method: requestBody.method, result });
+      } catch (error) {
+        return response({ ok: false, method: requestBody.method, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
     const identity = await telegram<TelegramBotIdentity>("getMe", {});
     const actualUsername = normalizeBotUsername(identity.username ?? "");
     if (!identity.is_bot || actualUsername !== expectedUsername) {
@@ -170,25 +180,97 @@ Deno.serve(async (request) => {
         actual_username: identity.username ?? null,
       }, 409);
     }
-    await telegram("setMyCommands", {
-      commands: [
-        { command: "start", description: "Open PAPER FLIGHT" },
-        { command: "help", description: "Help and commands" },
-        { command: "privacy", description: "Privacy policy" },
-        { command: "delete_me", description: "Delete my game data" },
-        { command: "support", description: "Support" },
-      ],
-    });
+    try {
+      await telegram("setMyCommands", {
+        commands: [
+          { command: "start", description: "Open PAPER FLIGHT" },
+          { command: "help", description: "Help and commands" },
+          { command: "privacy", description: "Privacy policy" },
+          { command: "delete_me", description: "Delete my game data" },
+          { command: "support", description: "Support" },
+        ],
+      });
+    } catch (error) {
+      console.warn("setMyCommands skipped:", error instanceof Error ? error.message : String(error));
+    }
     const webhookResult = await telegram<boolean>("setWebhook", {
       url: FUNCTION_URL,
       secret_token: webhookSecret,
       allowed_updates: ["message"],
       drop_pending_updates: true,
     });
+    let webhookInfo: Record<string, unknown> | null = null;
+    try {
+      webhookInfo = await telegram<Record<string, unknown>>("getWebhookInfo", {});
+    } catch (error) {
+      webhookInfo = { info_error: error instanceof Error ? error.message : String(error) };
+    }
+    if (requestBody.diag === "pipeline") {
+      const diagAdmin = createClient(supabaseUrl, adminKey, { auth: { persistSession: false, autoRefreshToken: false } });
+      const out: Record<string, unknown> = {
+        webhook_info: webhookInfo,
+        receipts: null,
+        rate_rows: null,
+        api_rate_rows: null,
+        queued_updates: null,
+        send_test: null,
+      };
+      try {
+        const r = await diagAdmin.from("telegram_webhook_receipts").select("bot_id, update_id, received_at").order("received_at", { ascending: false }).limit(25);
+        out.receipts = r.error ? { error: r.error.message } : r.data;
+      } catch (error) { out.receipts = { error: error instanceof Error ? error.message : String(error) }; }
+      try {
+        const r = await diagAdmin.from("telegram_bot_rate_limits").select("*").limit(20);
+        out.rate_rows = r.error ? { error: r.error.message } : r.data;
+      } catch (error) { out.rate_rows = { error: error instanceof Error ? error.message : String(error) }; }
+      try {
+        const r = await diagAdmin.from("telegram_api_rate_limits").select("*").limit(5);
+        out.api_rate_rows = r.error ? { error: r.error.message } : r.data;
+      } catch (error) { out.api_rate_rows = { error: error instanceof Error ? error.message : String(error) }; }
+      try {
+        await telegram("setWebhook", { url: "" });
+        const ups = await telegram<Array<Record<string, unknown>>>("getUpdates", { limit: 10, timeout: 0 });
+        out.queued_updates = (ups ?? []).map((u) => ({
+          update_id: u.update_id,
+          chat_id: ((u.message as { chat?: { id?: number } } | undefined)?.chat?.id ?? null),
+          chat_type: ((u.message as { chat?: { type?: string } } | undefined)?.chat?.type ?? null),
+          text: ((u.message as { text?: string } | undefined)?.text ?? null),
+          date: ((u.message as { date?: number } | undefined)?.date ?? null),
+        }));
+      } catch (error) {
+        out.queued_updates = { error: error instanceof Error ? error.message : String(error) };
+      } finally {
+        await telegram("setWebhook", { url: FUNCTION_URL, secret_token: webhookSecret, allowed_updates: ["message"], drop_pending_updates: false }).catch(() => undefined);
+      }
+      let targetChat: number | null =
+        requestBody.chat_id && Number.isSafeInteger(requestBody.chat_id) && requestBody.chat_id > 0 ? requestBody.chat_id : null;
+      if (!targetChat) {
+        const rows = Array.isArray(out.rate_rows) ? out.rate_rows as Array<{ telegram_user_id: number }> : [];
+        if (rows.length) targetChat = rows[0].telegram_user_id;
+      }
+      if (!targetChat && Array.isArray(out.queued_updates) && out.queued_updates.length > 0) {
+        const cid = (out.queued_updates[0] as { chat_id?: number | null }).chat_id;
+        if (typeof cid === "number" && cid > 0) targetChat = cid;
+      }
+      if (targetChat) {
+        try {
+          await sendWelcome(targetChat);
+          out.send_test = { chat_id: targetChat, ok: true };
+        } catch (error) {
+          out.send_test = { chat_id: targetChat, ok: false, error: error instanceof Error ? error.message : String(error) };
+        }
+      } else {
+        out.send_test = { skipped: true, reason: "no chat id available" };
+      }
+      return response({ ok: true, diag: out });
+    }
     return response({
       ok: true,
       webhook: webhookResult,
-      bot: { id: identity.id, username: identity.username },
+      bot: { id: identity.id, username: identity.username, first_name: identity.first_name },
+      webhook_info: webhookInfo,
+      secret_prefix: webhookSecret.slice(0, 6),
+      secret_len: webhookSecret.length,
     });
   }
 
