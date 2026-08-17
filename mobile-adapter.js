@@ -1,66 +1,171 @@
 (() => {
+  if (typeof ytgame !== 'undefined') return;
   const LANGUAGE_KEY = 'paper-flight-language';
   const memoryStorage = new Map();
 
-  const storage = {
+  const B = () => window.bridge || null;
+
+  // ── Storage layer ────────────────────────────────────────────────────
+  // Bridge storage is async; we cache everything in a Map for synchronous
+  // reads (matching the existing game's localStorage-style access pattern).
+  const cache = new Map();
+  let bridgeStorageReady = false;
+
+  const ls = {
     getItem(key) {
-      try {
-        return localStorage.getItem(key);
-      } catch (_) {
-        return memoryStorage.has(key) ? memoryStorage.get(key) : null;
-      }
+      try { return localStorage.getItem(key); } catch (_) { return null; }
     },
     setItem(key, value) {
+      try { localStorage.setItem(key, String(value)); } catch (_) {}
+    },
+    removeItem(key) {
+      try { localStorage.removeItem(key); } catch (_) {}
+    }
+  };
+
+  const ALL_STORAGE_KEYS = [
+    LANGUAGE_KEY,
+    'paper-flight-players',
+    'paper-flight-active-player',
+    'paper-flight-music',
+    'paper-flight-effects',
+    'paper-flight-vibration',
+    'paper-flight-visitor-id',
+    'paper-flight-best'
+  ];
+
+  function readCache(key) {
+    return cache.has(key) ? cache.get(key) : null;
+  }
+  function writeCache(key, value) {
+    if (value === null || value === undefined) cache.delete(key);
+    else cache.set(key, String(value));
+  }
+
+  const storage = {
+    getItem(key) { return readCache(key); },
+    setItem(key, value) {
       const text = String(value);
-      try {
-        localStorage.setItem(key, text);
-      } catch (_) {
-        memoryStorage.set(key, text);
+      writeCache(key, text);
+      ls.setItem(key, text);
+      const b = B();
+      if (b && bridgeStorageReady) {
+        b.storage.set([key], [text]).catch(() => {});
       }
     },
     removeItem(key) {
-      try {
-        localStorage.removeItem(key);
-      } catch (_) {
-        memoryStorage.delete(key);
+      cache.delete(key);
+      ls.removeItem(key);
+      const b = B();
+      if (b && bridgeStorageReady) {
+        b.storage.delete([key]).catch(() => {});
       }
     }
   };
 
-  let callbacks = {};
+  // Load all known keys into cache from Bridge storage, falling back to
+  // localStorage for any key Bridge doesn't have.
+  async function initBridgeStorage() {
+    const b = B();
+    if (!b) {
+      // No Bridge — populate cache from localStorage.
+      for (const k of ALL_STORAGE_KEYS) {
+        const v = ls.getItem(k);
+        if (v !== null) cache.set(k, v);
+      }
+      bridgeStorageReady = true;
+      return;
+    }
+    try {
+      const values = await b.storage.get(ALL_STORAGE_KEYS);
+      let fallbackNeeded = false;
+      for (let i = 0; i < ALL_STORAGE_KEYS.length; i++) {
+        const k = ALL_STORAGE_KEYS[i];
+        const v = values[i];
+        if (v !== null && v !== undefined) {
+          cache.set(k, String(v));
+        } else {
+          // Bridge has no value — try localStorage as fallback.
+          const lv = ls.getItem(k);
+          if (lv !== null) {
+            cache.set(k, lv);
+            fallbackNeeded = true;
+          }
+        }
+      }
+      // Push localStorage fallbacks into Bridge so future sessions get them.
+      if (fallbackNeeded) {
+        const pushKeys = [], pushVals = [];
+        for (const k of ALL_STORAGE_KEYS) {
+          const cv = cache.get(k);
+          if (cv !== undefined) { pushKeys.push(k); pushVals.push(cv); }
+        }
+        if (pushKeys.length) b.storage.set(pushKeys, pushVals).catch(() => {});
+      }
+      bridgeStorageReady = true;
+    } catch (_) {
+      // Bridge storage failed — fall back to localStorage.
+      for (const k of ALL_STORAGE_KEYS) {
+        const v = ls.getItem(k);
+        if (v !== null) cache.set(k, v);
+      }
+      bridgeStorageReady = true;
+    }
+  }
+
+  // ── Language ─────────────────────────────────────────────────────────
   const language = () => {
     const saved = storage.getItem(LANGUAGE_KEY);
     if (saved === 'ru' || saved === 'en') return saved;
-    return /^ru/i.test(navigator.language || '') ? 'ru' : 'en';
+    return 'en';
   };
 
-  // Compatibility layer for the latest web version. Mobile builds do not
-  // contact GamePix and do not insert advertising pauses.
+  // ── Callbacks (pause / resume / audio) ──────────────────────────────
+  let callbacks = {};
+
+  // ── PaperFlightGamePix adapter ──────────────────────────────────────
   window.PaperFlightGamePix = {
     storage,
     language,
+    initBridgeStorage,
     loading() {},
     loaded() {},
     updateScore() {},
     registerCallbacks(nextCallbacks = {}) {
       callbacks = nextCallbacks;
     },
-    happyMoment() {
-      try {
-        navigator.vibrate?.(25);
-      } catch (_) {}
-    },
-    gameOver() {
+    happyMoment() {},
+    gameOver(_score, extraCallbacks) {
+      if (extraCallbacks) {
+        callbacks = { ...callbacks, ...extraCallbacks };
+      }
       return Promise.resolve();
     }
   };
 
-  // The language is detected on first run (see language()); nothing is
-  // written to storage until the player actually chooses a language.
+  // Wire Bridge pause / audio events into the adapter callbacks.
+  function wireBridgeEvents() {
+    const b = B();
+    if (!b || !b.platform) return;
 
-  // The mobile launch screen and full-bleed styles are for touch devices
-  // (APK WebView and mobile web). On desktop (GamePix iframe, mouse) the
-  // game uses its own web UI and the canvas resizes to fit the frame.
+    b.platform.on(b.EVENT_NAME.PAUSE_STATE_CHANGED, isPaused => {
+      if (isPaused) callbacks.pause?.();
+      else callbacks.resume?.();
+    });
+    b.platform.on(b.EVENT_NAME.AUDIO_STATE_CHANGED, isEnabled => {
+      if (isEnabled) callbacks.soundOn?.();
+      else callbacks.soundOff?.();
+    });
+  }
+
+  // ── Language init ───────────────────────────────────────────────────
+  try {
+    if (!storage.getItem(LANGUAGE_KEY)) {
+      storage.setItem(LANGUAGE_KEY, 'en');
+    }
+  } catch (_) {}
+
+  // ── Touch / mobile detection ────────────────────────────────────────
   const touchDevice =
     matchMedia('(pointer: coarse)').matches ||
     navigator.maxTouchPoints > 0 ||
@@ -68,13 +173,9 @@
 
   if (touchDevice) {
     document.documentElement.classList.add('mobile-app');
-    // Right-click / text-selection suppression is mobile-only: on desktop
-    // (GamePix iframe) players must be able to open links and copy text.
-    for (const eventName of ['contextmenu', 'dragstart', 'selectstart']) {
-      document.addEventListener(eventName, (event) => event.preventDefault(), { passive: false });
-    }
   }
 
+  // ── Launch screen (touch devices only) ──────────────────────────────
   const launchCopy = {
     ru: {
       eyebrow: 'МОБИЛЬНАЯ АРКАДА',
@@ -109,7 +210,7 @@
         <span class="mobile-launch__column mobile-launch__column--top"></span>
         <span class="mobile-launch__column mobile-launch__column--bottom"></span>
         <span class="mobile-launch__trail"></span>
-        <span class="mobile-launch__plane">➤</span>
+        <span class="mobile-launch__plane">\u27A4</span>
       </div>
       <div class="mobile-launch__card">
         <p class="mobile-launch__eyebrow"></p>
@@ -131,7 +232,9 @@
       launch.querySelector('.mobile-launch__tagline').textContent = copy.tagline;
       launch.querySelector('.mobile-launch__instruction').textContent = copy.instruction;
       launch.querySelector('.mobile-launch__play').textContent = copy.play;
-      launch.querySelector('.mobile-launch__privacy').textContent = copy.privacy;
+      const privacyLink = launch.querySelector('.mobile-launch__privacy');
+      privacyLink.textContent = copy.privacy;
+      privacyLink.href = `privacy.html?lang=${currentLanguage}`;
     };
 
     launch.querySelector('.mobile-launch__language').addEventListener('click', () => {
@@ -145,18 +248,9 @@
     launch.querySelector('.mobile-launch__play').addEventListener('click', () => {
       launch.classList.add('mobile-launch--closing');
       document.documentElement.classList.remove('mobile-launch-visible');
-      window.setTimeout(() => {
-        launch.remove();
-        // Mobile flow: after the "tap to lift" screen, go straight to the
-        // how-to/first flight instead of dropping the player into the menu.
-        const mainMenu = document.getElementById('main-menu');
-        const playButton = document.getElementById('menu-play');
-        if (mainMenu && !mainMenu.hidden && playButton) playButton.click();
-      }, 280);
+      window.setTimeout(() => launch.remove(), 280);
     });
 
-    // The instruction says "tap the screen" — so any tap on the launch screen
-    // (outside the language switch and the privacy link) starts the game.
     launch.addEventListener('click', (event) => {
       if (event.target.closest('.mobile-launch__language')) return;
       if (event.target.closest('.mobile-launch__privacy')) return;
@@ -176,10 +270,19 @@
     }
   }
 
+  for (const eventName of ['contextmenu', 'dragstart', 'selectstart']) {
+    document.addEventListener(eventName, (event) => event.preventDefault(), { passive: false });
+  }
+
+  // ── Lifecycle events ────────────────────────────────────────────────
   document.addEventListener('visibilitychange', () => {
     const callback = document.hidden ? callbacks.pause : callbacks.resume;
     if (typeof callback === 'function') callback();
   });
   window.addEventListener('pagehide', () => callbacks.pause?.());
   window.addEventListener('pageshow', () => callbacks.resume?.());
+
+  // Bridge pause / audio events are wired from initPlatform() in index.html
+  // AFTER registerCallbacks(), so callbacks are available when events fire.
+
 })();
