@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!-- Tooling update notice; Gradle 8.14.3 is the Capacitor-generated compatible wrapper. -->
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <!-- Cordova loads this generated compatibility resource by name at runtime. -->
+    <issue id="UnusedResources">
+        <ignore path="app/src/main/res/xml/config.xml" />
+    </issue>
+</lint>
