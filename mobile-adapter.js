@@ -34,16 +34,19 @@
     'paper-flight-best'
   ];
 
-  function readCache(key) {
-    return cache.has(key) ? cache.get(key) : null;
-  }
   function writeCache(key, value) {
     if (value === null || value === undefined) cache.delete(key);
     else cache.set(key, String(value));
   }
 
   const storage = {
-    getItem(key) { return readCache(key); },
+    getItem(key) {
+      // Cache may not be populated yet (initBridgeStorage is async and runs
+      // after the game reads profiles on startup). Fall back to localStorage
+      // so saved players/settings survive between app launches.
+      if (cache.has(key)) return cache.get(key);
+      return ls.getItem(key);
+    },
     setItem(key, value) {
       const text = String(value);
       writeCache(key, text);
