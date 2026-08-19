@@ -3,12 +3,14 @@
  * GamePix iframe or other embeds). Cache-first with network fallback. */
 /* Bump this name on every release so the new version never serves stale
  * assets from a previous deployment (activate() deletes all other caches). */
-const CACHE = 'paper-flight-v4';
+const CACHE = 'paper-flight-v6';
 const ASSETS = [
   './',
   './index.html',
   './mobile.css',
   './mobile-adapter.js',
+  './yt-playables-adapter.js',
+  './crazygames-adapter.js',
   './public-config.js',
   './privacy.html',
   './og-image.png',
