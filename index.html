@@ -264,9 +264,26 @@
     const telegramBotUsername=String(window.PAPER_FLIGHT_CONFIG?.telegramBotUsername||'').replace(/^@/,'');
     const telegramApp=window.Telegram?.WebApp||null;
     const telegramInitData=(telegramApp?.initData||''||((h)=>{try{return decodeURIComponent(h[1])}catch(_){return ''}})(/tgWebAppData=([^&]+)/.exec(location.hash||'')||[]))||'';
-    const telegramUnsafeUser=(()=>{try{const raw=telegramApp?.initDataUnsafe?.user;if(raw)return raw;const params=new URLSearchParams(telegramInitData);const u=params.get('user');return u?JSON.parse(u):null}catch(_){return null}})();
-    const telegramUnsafeUserId=Number(telegramUnsafeUser?.id||0);
-    const telegramMode=Boolean(telegramInitData);
+    let telegramUnsafeUser=(()=>{try{const raw=telegramApp?.initDataUnsafe?.user;if(raw)return raw;const params=new URLSearchParams(telegramInitData);const u=params.get('user');return u?JSON.parse(u):null}catch(_){return null}})();
+    let telegramUnsafeUserId=Number(telegramUnsafeUser?.id||0);
+    let telegramMode=Boolean(telegramInitData);
+    function refreshTelegramContext(){
+      const app=window.Telegram?.WebApp||null;
+      const initData=(app?.initData||''||((h)=>{try{return decodeURIComponent(h[1])}catch(_){return ''}})(/tgWebAppData=([^&]+)/.exec(location.hash||'')||[]))||'';
+      if(!initData)return telegramMode;
+      let user=null;
+      try{const raw=app?.initDataUnsafe?.user;if(raw)user=raw;else{const u=new URLSearchParams(initData).get('user');if(u)user=JSON.parse(u)}}catch(_){}
+      if(user){telegramUnsafeUser=user;telegramUnsafeUserId=Number(user?.id||0)}
+      if(!telegramMode&&initData)telegramMode=true;
+      return telegramMode;
+    }
+    function waitTelegramWebApp(){
+      return new Promise(resolve=>{
+        if(window.Telegram?.WebApp||/tgWebAppData=/.test(location.hash||''))return resolve(true);
+        let tries=0;
+        const timer=setInterval(()=>{tries++;if(window.Telegram?.WebApp||/tgWebAppData=/.test(location.hash||'')){clearInterval(timer);resolve(true)}else if(tries>40){clearInterval(timer);resolve(false)}},50);
+      });
+    }
     function telegramLocalName(user){const fullName=[user?.first_name,user?.last_name].filter(part=>typeof part==='string'&&part.trim()).join(' ').replace(/\s+/g,' ').trim();const fallback=user?.username?`@${user.username}`:Number.isSafeInteger(telegramUnsafeUserId)&&telegramUnsafeUserId>0?`TG ${telegramUnsafeUserId}`:'Telegram';return Array.from(fullName||fallback).slice(0,18).join('')}
     const t=(key,...args)=>{const value=(I18N[currentLang]||I18N.en)[key]??I18N.en[key]??key;return typeof value==='function'?value(...args):value};
     function applyLocale(lang){currentLang=lang==='ru'?'ru':'en';document.documentElement.lang=currentLang;document.documentElement.dataset.locale=currentLang;document.title=t('pageTitle');document.querySelector('meta[name="description"]')?.setAttribute('content',t('pageDescription'));document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n)});document.querySelectorAll('[data-i18n-aria-label]').forEach(el=>el.setAttribute('aria-label',t(el.dataset.i18nAriaLabel)));document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>el.setAttribute('placeholder',t(el.dataset.i18nPlaceholder)));const button=document.getElementById('language-button'),code=document.getElementById('language-code'),label=currentLang==='ru'?t('switchToEnglish'):t('switchToRussian');if(code)code.textContent=(currentLang==='ru'?'EN':'RU');if(button){button.setAttribute('aria-label',label);button.title=label}}
@@ -550,7 +567,7 @@
     howtoPlay.addEventListener('click',()=>{howtoMenu.hidden=true;reset()});
     pauseButton?.addEventListener('click',togglePause);
     try{if('serviceWorker' in navigator&&window.self===window.top&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{})})}}catch(e){}
-    await initPlatform();if(telegramMode)await syncTelegramProfile();if(typeof ytgame!=='undefined'||typeof window.CrazyGames!=='undefined'){privacyLink.style.display='none';menuChallenge.hidden=true;gameoverChallenge.hidden=true}renderDifficulty();renderLeaderboard();renderProfile();if(activePlayer){loadLeaderboard();if(telegramMode||Number(activePlayer.flights)>0||activePlayer.nameLocked)openMainMenu();else openProfile(true)}else openProfile(true);
+    await waitTelegramWebApp();refreshTelegramContext();await initPlatform();if(telegramMode)await syncTelegramProfile();if(typeof ytgame!=='undefined'||typeof window.CrazyGames!=='undefined'){privacyLink.style.display='none';menuChallenge.hidden=true;gameoverChallenge.hidden=true}renderDifficulty();renderLeaderboard();renderProfile();if(activePlayer){loadLeaderboard();if(telegramMode||Number(activePlayer.flights)>0||activePlayer.nameLocked)openMainMenu();else openProfile(true)}else openProfile(true);
     setInterval(async()=>{if(!apiReady()||document.hidden)return;try{const result=await api('rpc/register_game_visit',{method:'POST',body:JSON.stringify({p_visitor_key:visitorKey(),p_user_agent:navigator.userAgent})});onlineTotal=Math.max(0,Number(result?.online_players)||0);renderLeaderboardStatus()}catch(e){}},30000);
     // Fit the game to the hosting frame (GamePix iframe, browser window).
     // The iframe can be resized by the host without a window.resize event,
