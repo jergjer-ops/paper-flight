@@ -263,8 +263,8 @@
     let currentLang='en',ysdk=null,gameplayState=null,platformPaused=false;
     const telegramBotUsername=String(window.PAPER_FLIGHT_CONFIG?.telegramBotUsername||'').replace(/^@/,'');
     const telegramApp=window.Telegram?.WebApp||null;
-    const telegramInitData=telegramApp?.initData||'';
-    const telegramUnsafeUser=telegramApp?.initDataUnsafe?.user||null;
+    const telegramInitData=(telegramApp?.initData||''||((h)=>{try{return decodeURIComponent(h[1])}catch(_){return ''}})(/tgWebAppData=([^&]+)/.exec(location.hash||'')||[]))||'';
+    const telegramUnsafeUser=(()=>{try{const raw=telegramApp?.initDataUnsafe?.user;if(raw)return raw;const params=new URLSearchParams(telegramInitData);const u=params.get('user');return u?JSON.parse(u):null}catch(_){return null}})();
     const telegramUnsafeUserId=Number(telegramUnsafeUser?.id||0);
     const telegramMode=Boolean(telegramInitData);
     function telegramLocalName(user){const fullName=[user?.first_name,user?.last_name].filter(part=>typeof part==='string'&&part.trim()).join(' ').replace(/\s+/g,' ').trim();const fallback=user?.username?`@${user.username}`:Number.isSafeInteger(telegramUnsafeUserId)&&telegramUnsafeUserId>0?`TG ${telegramUnsafeUserId}`:'Telegram';return Array.from(fullName||fallback).slice(0,18).join('')}
