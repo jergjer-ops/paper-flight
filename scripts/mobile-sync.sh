@@ -45,10 +45,10 @@ lines = open(path, encoding='utf-8').read().split('\n')
 keep = []
 removed = 0
 for line in lines:
-    if 'playgama-bridge.js' in line or 'crazygames-sdk-v3.js' in line:
+    if 'playgama-bridge.js' in line or 'crazygames-sdk-v3.js' in line or 'html5.api.gamedistribution.com' in line:
         removed += 1
         continue
-    if ('yt-playables-adapter.js' in line or 'crazygames-adapter.js' in line) and '<script' in line:
+    if ('yt-playables-adapter.js' in line or 'crazygames-adapter.js' in line or 'gamedistribution-adapter.js' in line) and '<script' in line:
         removed += 1
         continue
     keep.append(line)
@@ -64,10 +64,18 @@ cp "$ROOT/mobile.css" "$WWW/mobile.css"
 cp "$ROOT/public-config.js" "$WWW/public-config.js"
 cp "$ROOT/privacy.html" "$WWW/privacy.html"
 cp "$ROOT/sw.js" "$WWW/sw.js"
+# Убрать из mobile-версии sw.js ссылки на веб-адаптеры, которых нет в сборке
+python3 - "$WWW/sw.js" <<'PY'
+import sys
+path = sys.argv[1]
+lines = [l for l in open(path, encoding='utf-8').read().split('\n')
+         if 'gamedistribution-adapter.js' not in l]
+open(path, 'w', encoding='utf-8').write('\n'.join(lines))
+PY
 
 # 6. Проверка: никаких внешних SDK-подключений в мобильной сборке
 # (упоминания в JS-guard'ах вида typeof window.CrazyGames допустимы)
-if grep -qE "document\.write\('<script|src=\"https?://(bridge\.playgama|sdk\.crazygames)" "$WWW/index.html"; then
+if grep -qE "document\.write\('<script|src=\"https?://(bridge\.playgama|sdk\.crazygames|html5\.api\.gamedistribution)" "$WWW/index.html"; then
   echo "Ошибка: в мобильной сборке остались загрузки рекламных SDK!" >&2
   exit 1
 fi
