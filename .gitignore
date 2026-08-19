@@ -9,3 +9,14 @@ supabase/.temp/
 # Python cache files are generated locally and must not be published.
 __pycache__/
 *.py[cod]
+
+# Android build artifacts (regenerate with scripts/mobile-sync.sh).
+android/node_modules/
+android/.temp/
+android/android/build/
+android/android/app/build/
+android/android/capacitor-cordova-android-plugins/build/
+android/android/.gradle/
+android/android/.idea/
+android/android/local.properties
+android/android/app/src/main/assets/public/

@@ -1,0 +1,9 @@
+{
+  "appId": "com.paperflight.cardboardskies",
+  "appName": "Paper Flight: Cardboard Skies",
+  "webDir": "www",
+  "backgroundColor": "#d8c6a4",
+  "server": {
+    "androidScheme": "https"
+  }
+}
