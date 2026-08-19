@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://bridge.playgama.com https://sdk.crazygames.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://uqnendfdguugtcguceei.supabase.co https://*.playgama.com https://bridge.playgama.com; img-src 'self' data: https:; font-src 'self' data:; media-src 'none'; object-src 'none'; frame-src https://*.playgama.com; base-uri 'none'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://bridge.playgama.com https://sdk.crazygames.com https://telegram.org; style-src 'self' 'unsafe-inline'; connect-src 'self' https://uqnendfdguugtcguceei.supabase.co https://*.playgama.com https://bridge.playgama.com; img-src 'self' data: https:; font-src 'self' data:; media-src 'none'; object-src 'none'; frame-src https://*.playgama.com; base-uri 'none'; form-action 'self'">
   <meta name="theme-color" content="#d8c6a4">
   <meta name="description" content="Paper Flight Cardboard Skies — an original browser arcade game in a handmade paper-collage style.">
   <title>Paper Flight Cardboard Skies</title>
@@ -51,8 +51,9 @@
     .mobile-hint{display:none!important}
   </style>
   <link rel="stylesheet" href="mobile.css">
-  <script>if(typeof ytgame==='undefined' && typeof window.CrazyGames==='undefined'){document.write('<script src="https://bridge.playgama.com/v2/stable/playgama-bridge.js"><\/script>')}</script>
-  <script>if(typeof window.CrazyGames==='undefined' && typeof bridge==='undefined' && typeof ytgame==='undefined'){document.write('<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"><\/script>')}</script>
+  <script>window.__pfInTelegram=typeof window.Telegram!=='undefined'&&!!window.Telegram?.WebApp||!!document.querySelector('script[src*="telegram-web-app"]');</script>
+  <script>if(!window.__pfInTelegram&&typeof ytgame==='undefined'&&typeof window.CrazyGames==='undefined'){document.write('<script src="https://bridge.playgama.com/v2/stable/playgama-bridge.js"><\/script>')}</script>
+  <script>if(!window.__pfInTelegram&&typeof window.CrazyGames==='undefined'&&typeof bridge==='undefined'&&typeof ytgame==='undefined'){document.write('<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"><\/script>')}</script>
   <script src="public-config.js"></script>
   <script src="mobile-adapter.js"></script>
   <script src="yt-playables-adapter.js"></script>
