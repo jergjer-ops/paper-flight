@@ -25,13 +25,28 @@
   };
 
   let callbacks = {};
+  let sdkReady = false;
+  window.__gdSdkReady = () => sdkReady;
+  const waitSdkReady = () => new Promise(resolve => {
+    if (sdkReady || (window.gdsdk && window.gdsdk.gameReady)) { resolve(true); return; }
+    const timer = setInterval(() => {
+      if (sdkReady) { clearInterval(timer); resolve(true); }
+    }, 50);
+    setTimeout(() => { clearInterval(timer); resolve(sdkReady); }, 10000);
+  });
 
   window.PaperFlightGamePix = {
     storage,
     language,
     initBridgeStorage: () => Promise.resolve(),
     loading() {},
-    loaded() {},
+    loaded() {
+      try {
+        if (window.gdsdk && typeof window.gdsdk.gameReady === 'function') {
+          waitSdkReady().then(() => { try { window.gdsdk.gameReady(); } catch (_) {} });
+        }
+      } catch (_) {}
+    },
     updateScore() {},
     registerCallbacks(nextCallbacks = {}) {
       callbacks = nextCallbacks;
@@ -45,7 +60,9 @@
 
   window.__gdOnEvent = function (event) {
     const name = event && event.name;
-    if (name === 'SDK_GAME_PAUSE') {
+    if (name === 'SDK_READY') {
+      sdkReady = true;
+    } else if (name === 'SDK_GAME_PAUSE') {
       callbacks.pause?.();
       callbacks.soundOff?.();
     } else if (name === 'SDK_GAME_START') {
