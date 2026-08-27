@@ -8,6 +8,7 @@ type RequestBody = {
   action?: "profile" | "leaderboard" | "start" | "submit" | "create_challenge";
   initData?: string;
   score?: number;
+  coins?: number;
   sessionId?: string;
 };
 
@@ -115,12 +116,14 @@ Deno.serve(async (request) => {
 
   const startParam = new URLSearchParams(body.initData ?? "").get("start_param") ?? "";
   const challengeCode = /^c_[0-9a-f]{24}$/.test(startParam) ? startParam : "";
+  const referralMatch = /^r_([1-9][0-9]{0,14})$/.exec(startParam);
+  const referralInviterId = referralMatch ? Number(referralMatch[1]) : 0;
 
   if (body.action === "profile") {
     const playerKey = `telegram:${telegram.user.id}`;
     const { data, error } = await admin
       .from("leaderboard")
-      .select("player_name,best_score,total_flights")
+      .select("player_name,best_score,total_flights,coins")
       .eq("player_key", playerKey)
       .maybeSingle();
     if (error) return jsonResponse({ error: "Unable to load profile" }, 400, origin);
@@ -132,10 +135,27 @@ Deno.serve(async (request) => {
       });
       if (!opened.error) challenge = opened.data;
     }
+    let referral: { claimed: boolean; invited_count: number } | null = null;
+    if (referralInviterId > 0 || challengeCode === "") {
+      const claimed = referralInviterId > 0
+        ? await admin.rpc("claim_game_referral", {
+          p_invited: telegram.user.id,
+          p_referrer: referralInviterId,
+        })
+        : null;
+      const counted = await admin.rpc("referral_invite_count", {
+        p_referrer: telegram.user.id,
+      });
+      referral = {
+        claimed: claimed?.data?.claimed === true,
+        invited_count: Number(counted.data) || 0,
+      };
+    }
     return jsonResponse({
       telegram: { id: telegram.user.id, name: telegram.displayName },
       profile: data ?? { player_name: telegram.displayName, best_score: 0, total_flights: 0 },
       challenge,
+      referral,
     }, 200, origin);
   }
 
@@ -172,10 +192,12 @@ Deno.serve(async (request) => {
     if (!Number.isInteger(body.score) || (body.score as number) < 0 || (body.score as number) > 1000) {
       return jsonResponse({ error: "Invalid score" }, 400, origin);
     }
+    const coins = Math.max(0, Math.min(100000, Number(body.coins) || 0));
     const { data, error } = await admin.rpc("submit_score_telegram", {
       p_telegram_user_id: telegram.user.id,
       p_session: body.sessionId,
       p_score: body.score,
+      p_coins: coins,
     });
     if (error) return jsonResponse({ error: "Unable to submit score" }, 400, origin);
     let challenge = null;
