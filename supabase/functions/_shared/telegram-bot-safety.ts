@@ -32,6 +32,7 @@ export function telegramApiRateLimit(action: string): number | null {
     start: 12,
     submit: 20,
     create_challenge: 3,
+    update_coins: 10,
   };
   return limits[action] ?? null;
 }
