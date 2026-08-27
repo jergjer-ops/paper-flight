@@ -31,6 +31,7 @@ export function telegramApiRateLimit(action: string): number | null {
     leaderboard: 30,
     start: 12,
     submit: 20,
+    shop: 12,
     create_challenge: 3,
     update_coins: 10,
   };
