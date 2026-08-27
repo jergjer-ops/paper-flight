@@ -5,10 +5,12 @@ import { telegramApiRateLimit } from "../_shared/telegram-bot-safety.ts";
 // This endpoint is the only trust boundary for Telegram identity and scores.
 
 type RequestBody = {
-  action?: "profile" | "leaderboard" | "start" | "submit" | "create_challenge" | "update_coins";
+  action?: "profile" | "leaderboard" | "start" | "submit" | "shop" | "create_challenge" | "update_coins";
   initData?: string;
   score?: number;
   coins?: number;
+  itemKind?: string;
+  itemId?: string;
   sessionId?: string;
 };
 
@@ -121,7 +123,7 @@ Deno.serve(async (request) => {
     const playerKey = `telegram:${telegram.user.id}`;
     const { data, error } = await admin
       .from("leaderboard")
-      .select("player_name,best_score,total_flights,coins")
+      .select("player_name,best_score,total_flights,coins,owned_planes,selected_plane,owned_tracks,selected_track,banked_lives")
       .eq("player_key", playerKey)
       .maybeSingle();
     if (error) return jsonResponse({ error: "Unable to load profile" }, 400, origin);
@@ -135,7 +137,7 @@ Deno.serve(async (request) => {
     }
     return jsonResponse({
       telegram: { id: telegram.user.id, name: telegram.displayName },
-      profile: data ?? { player_name: telegram.displayName, best_score: 0, total_flights: 0, coins: 0 },
+      profile: data ?? { player_name: telegram.displayName, best_score: 0, total_flights: 0, coins: 0, owned_planes: ["fighter"], selected_plane: "fighter", owned_tracks: ["morning"], selected_track: "morning", banked_lives: 0 },
       challenge,
     }, 200, origin);
   }
@@ -173,7 +175,8 @@ Deno.serve(async (request) => {
     if (!Number.isInteger(body.score) || (body.score as number) < 0 || (body.score as number) > 1000) {
       return jsonResponse({ error: "Invalid score" }, 400, origin);
     }
-    const coins = Math.max(0, Math.min(100000, Number(body.coins) || 0));
+    // Coins are derived from the verified score, never from a client balance.
+    const coins = Math.min(500, Math.floor((body.score as number) / 5) * 5);
     const { data, error } = await admin.rpc("submit_score_telegram", {
       p_telegram_user_id: telegram.user.id,
       p_session: body.sessionId,
@@ -194,34 +197,28 @@ Deno.serve(async (request) => {
   }
 
   if (body.action === "update_coins") {
-    const coins = Math.max(0, Math.min(100000, Number(body.coins) || 0));
+    // Compatibility for older clients: never let a device overwrite the wallet.
     const playerKey = `telegram:${telegram.user.id}`;
-    const { data: existing } = await admin
+    const { data: existing, error } = await admin
       .from("leaderboard")
-      .select("player_key")
+      .select("coins")
       .eq("player_key", playerKey)
       .maybeSingle();
-    if (existing) {
-      const { error } = await admin
-        .from("leaderboard")
-        .update({ coins, updated_at: new Date().toISOString() })
-        .eq("player_key", playerKey);
-      if (error) return jsonResponse({ error: "Unable to update coins" }, 400, origin);
-    } else {
-      const { error } = await admin
-        .from("leaderboard")
-        .insert({
-          player_key: playerKey,
-          player_name: telegram.displayName,
-          best_score: 0,
-          total_flights: 0,
-          coins,
-          identity_provider: "telegram",
-          provider_user_id: String(telegram.user.id),
-        });
-      if (error) return jsonResponse({ error: "Unable to create coins" }, 400, origin);
+    if (error) return jsonResponse({ error: "Unable to load coins" }, 400, origin);
+    return jsonResponse({ ok: true, coins: Math.max(0, Number(existing?.coins) || 0) }, 200, origin);
+  }
+
+  if (body.action === "shop") {
+    if (typeof body.itemKind !== "string" || typeof body.itemId !== "string") {
+      return jsonResponse({ error: "Invalid shop item" }, 400, origin);
     }
-    return jsonResponse({ ok: true, coins }, 200, origin);
+    const { data, error } = await admin.rpc("update_telegram_shop", {
+      p_telegram_user_id: telegram.user.id,
+      p_item_kind: body.itemKind,
+      p_item_id: body.itemId,
+    });
+    if (error) return jsonResponse({ error: "Unable to update shop" }, 400, origin);
+    return jsonResponse(data, 200, origin);
   }
 
   if (body.action === "create_challenge") {
