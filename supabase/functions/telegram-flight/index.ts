@@ -5,7 +5,7 @@ import { telegramApiRateLimit } from "../_shared/telegram-bot-safety.ts";
 // This endpoint is the only trust boundary for Telegram identity and scores.
 
 type RequestBody = {
-  action?: "profile" | "leaderboard" | "start" | "submit" | "create_challenge";
+  action?: "profile" | "leaderboard" | "start" | "submit" | "create_challenge" | "update_coins";
   initData?: string;
   score?: number;
   coins?: number;
@@ -191,6 +191,37 @@ Deno.serve(async (request) => {
       if (!recorded.error) challenge = recorded.data;
     }
     return jsonResponse({ ...data, challenge }, 200, origin);
+  }
+
+  if (body.action === "update_coins") {
+    const coins = Math.max(0, Math.min(100000, Number(body.coins) || 0));
+    const playerKey = `telegram:${telegram.user.id}`;
+    const { data: existing } = await admin
+      .from("leaderboard")
+      .select("player_key")
+      .eq("player_key", playerKey)
+      .maybeSingle();
+    if (existing) {
+      const { error } = await admin
+        .from("leaderboard")
+        .update({ coins, updated_at: new Date().toISOString() })
+        .eq("player_key", playerKey);
+      if (error) return jsonResponse({ error: "Unable to update coins" }, 400, origin);
+    } else {
+      const { error } = await admin
+        .from("leaderboard")
+        .insert({
+          player_key: playerKey,
+          player_name: telegram.displayName,
+          best_score: 0,
+          total_flights: 0,
+          coins,
+          identity_provider: "telegram",
+          provider_user_id: String(telegram.user.id),
+        });
+      if (error) return jsonResponse({ error: "Unable to create coins" }, 400, origin);
+    }
+    return jsonResponse({ ok: true, coins }, 200, origin);
   }
 
   if (body.action === "create_challenge") {
