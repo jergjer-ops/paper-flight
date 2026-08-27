@@ -8,6 +8,7 @@ type RequestBody = {
   action?: "profile" | "leaderboard" | "start" | "submit" | "create_challenge";
   initData?: string;
   score?: number;
+  coins?: number;
   sessionId?: string;
 };
 
@@ -120,7 +121,7 @@ Deno.serve(async (request) => {
     const playerKey = `telegram:${telegram.user.id}`;
     const { data, error } = await admin
       .from("leaderboard")
-      .select("player_name,best_score,total_flights")
+      .select("player_name,best_score,total_flights,coins")
       .eq("player_key", playerKey)
       .maybeSingle();
     if (error) return jsonResponse({ error: "Unable to load profile" }, 400, origin);
@@ -172,10 +173,12 @@ Deno.serve(async (request) => {
     if (!Number.isInteger(body.score) || (body.score as number) < 0 || (body.score as number) > 1000) {
       return jsonResponse({ error: "Invalid score" }, 400, origin);
     }
+    const coins = Math.max(0, Math.min(100000, Number(body.coins) || 0));
     const { data, error } = await admin.rpc("submit_score_telegram", {
       p_telegram_user_id: telegram.user.id,
       p_session: body.sessionId,
       p_score: body.score,
+      p_coins: coins,
     });
     if (error) return jsonResponse({ error: "Unable to submit score" }, 400, origin);
     let challenge = null;
