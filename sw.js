@@ -1,9 +1,10 @@
 /* Paper Flight — offline app shell.
  * Registered only on the top-level GitHub Pages site (never inside the
- * GamePix iframe or other embeds). Cache-first with network fallback. */
+ * GamePix iframe or other embeds). Documents are network-first so Telegram
+ * WebView cannot remain pinned to an old game build after a normal reload. */
 /* Bump this name on every release so the new version never serves stale
  * assets from a previous deployment (activate() deletes all other caches). */
-const CACHE = 'paper-flight-v7';
+const CACHE = 'paper-flight-v8';
 const ASSETS = [
   './',
   './index.html',
@@ -39,7 +40,31 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   // Never cache cross-origin requests (Supabase API, GamePix SDK, CDN fonts).
-  if (new URL(request.url).origin !== self.location.origin) return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  const isDocument = request.mode === 'navigate'
+    || url.pathname.endsWith('/')
+    || url.pathname.endsWith('/index.html');
+
+  if (isDocument) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches
+              .open(CACHE)
+              .then((cache) => cache.put('./index.html', copy))
+              .catch(() => {});
+          }
+          return response;
+        })
+        .catch(() => caches.match('./index.html')),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
