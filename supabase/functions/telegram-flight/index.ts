@@ -135,7 +135,7 @@ Deno.serve(async (request) => {
     }
     return jsonResponse({
       telegram: { id: telegram.user.id, name: telegram.displayName },
-      profile: data ?? { player_name: telegram.displayName, best_score: 0, total_flights: 0 },
+      profile: data ?? { player_name: telegram.displayName, best_score: 0, total_flights: 0, coins: 0 },
       challenge,
     }, 200, origin);
   }
